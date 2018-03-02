@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-import numpy as np
+
 import csv
 import os
 import time
@@ -44,10 +44,10 @@ def CSVtoDICT(csvFILE):
         stepLog += 1
     return csvDICT
 
-def markUpperPoint(event,x,y,flags,param):   # 標上唇頂點的位置
+def markEndFrameID(event,x,y,flags,param):   # 標記當下的 frameID
     global eightEndLIST, frameID
     if event == cv2.EVENT_LBUTTONDOWN:
-        print frameID
+        #print frameID
         eightEndLIST.append(frameID)
         
 
@@ -76,7 +76,7 @@ if __name__ == "__main__":
         
         cv2.namedWindow('mark eight end frameID: {}'.format(csvDICT[stepLog]["MP4FILE"][:4]),1)
         cv2.resizeWindow('mark eight end frameID: {}'.format(csvDICT[stepLog]["MP4FILE"][:4]), len(frame0[0]), len(frame0))
-        cv2.setMouseCallback('mark eight end frameID: {}'.format(csvDICT[stepLog]["MP4FILE"][:4]),markUpperPoint)
+        cv2.setMouseCallback('mark eight end frameID: {}'.format(csvDICT[stepLog]["MP4FILE"][:4]), markEndFrameID)
         
         frameID = 1
         while True:
