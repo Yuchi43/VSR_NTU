@@ -15,6 +15,7 @@ import cv2
 你可以在視窗內任意一個位置點擊滑鼠左鍵，此時的 frameID 會被紀錄在程式中，點擊 'q' 可以換下一部影片。
 40 個影片都標記完後，程式會將全部的 frameID 存在 ./result/eightEndFrameID.csv 檔案中。
 
+註：影片取得方式詳見 VSR_NTU 中的 README.md。
 '''
 
 def CSVtoDICT(csvFILE):

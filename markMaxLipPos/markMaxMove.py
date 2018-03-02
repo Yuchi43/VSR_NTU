@@ -10,8 +10,12 @@ import cv2
 
 
 '''
-目標：計算每個 speaker 嘴唇變化的最大量。
+這支程式是輔助工具，能協助人工標出 40 個 speaker 在念數字 8 時，上唇頂點及下唇頂點的位置。
+
+目標：取得每個 speaker 嘴唇變化的最大量。
 方法：以人工的方式標出 40 個 speaker 在念數字 8 時，上唇頂點及下唇頂點原始位置，紀錄該 frameID 及座標點。
+
+註：影片取得方式詳見 VSR_NTU 中的 README.md。
 '''
 
 def CSVtoDICT(csvFILE):
