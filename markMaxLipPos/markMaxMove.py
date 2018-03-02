@@ -17,11 +17,11 @@ import cv2
 def CSVtoDICT(csvFILE):
     '''
     csvDICT scheme >>>
-    csvDICT = { 1 : {"order"       : "1",
-                     "MPGFILE"     : "MPGFile name",
+    csvDICT = { 1 : {"order"       : "1",             # 該影片在整個資料庫中的編號，在此實驗中沒有使用此參數。
+                     "MP4FILE"     : "MP4FILE name",  # 影片檔名
                     },
-                2 : {"order"       : "1",
-                     "MPGFILE"     :"MPGFile name",
+                2 : {"order"       : "2",
+                     "MP4FILE"     :"MP4FILE name",
                     },
                 3...
               }
@@ -66,7 +66,7 @@ def markLowerPoint(event,x,y,flags,param):   # 標上唇頂點的位置
 
 if __name__ == "__main__":
     
-    fileName = 'testSheetShort2_8contain.csv'
+    fileName = 'testSheetShort_8contain.csv'
     try:
         csvDICT = CSVtoDICT("./{}".format(fileName))
         for key in csvDICT.keys():

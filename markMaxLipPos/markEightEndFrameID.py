@@ -13,10 +13,8 @@ import cv2
 這支程式是輔助工具，能協助人工標出 speaker 念完數字 8 當下的 frameID。
 執行後會開啟 opencv 視窗一張一張播放影片的 frame，影片若播放到 speaker 唸完數字 8 的 frame 時，
 你可以在視窗內任意一個位置點擊滑鼠左鍵，此時的 frameID 會被紀錄在程式中，點擊 'q' 可以換下一部影片。
-40 個影片都標記完後，程式會將全部的 frameID 存在 eightEndFrameID.csv 檔案中。
+40 個影片都標記完後，程式會將全部的 frameID 存在 ./result/eightEndFrameID.csv 檔案中。
 
-
-NOTE: testSheetShort_8contain.csv 原始檔案已遺失，現在使用的檔案只是示範用途。
 '''
 
 def CSVtoDICT(csvFILE):
@@ -93,7 +91,7 @@ if __name__ == "__main__":
         cv2.destroyAllWindows()
         stepLog += 1
         
-    outputFILE = open("eightEndFrameID.csv", "w")
+    outputFILE = open("./result/eightEndFrameID.csv", "w")
     w = csv.writer(outputFILE)
     w.writerow(eightEndLIST)
     outputFILE.close()
