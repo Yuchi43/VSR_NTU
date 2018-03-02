@@ -10,17 +10,23 @@ import cv2
 
 
 '''
-標出 speaker 念 8 的最後 frameID
+這支程式是輔助工具，能協助人工標出 speaker 念完數字 8 當下的 frameID。
+執行後會開啟 opencv 視窗一張一張播放影片的 frame，影片若播放到 speaker 唸完數字 8 的 frame 時，
+你可以在視窗內任意一個位置點擊滑鼠左鍵，此時的 frameID 會被紀錄在程式中，點擊 'q' 可以換下一部影片。
+40 個影片都標記完後，程式會將全部的 frameID 存在 eightEndFrameID.csv 檔案中。
+
+
+NOTE: testSheetShort_8contain.csv 原始檔案已遺失，現在使用的檔案只是示範用途。
 '''
 
 def CSVtoDICT(csvFILE):
     '''
     csvDICT scheme >>>
-    csvDICT = { 1 : {"order"       : "1",
-                     "MPGFILE"     : "MPGFile name",
+    csvDICT = { 1 : {"order"       : "1",             # 該影片在整個資料庫中的編號，在此實驗中沒有使用此參數。
+                     "MP4FILE"     : "MP4FILE name",  # 影片檔名
                     },
-                2 : {"order"       : "1",
-                     "MPGFILE"     :"MPGFile name",
+                2 : {"order"       : "2",
+                     "MP4FILE"     :"MP4FILE name",
                     },
                 3...
               }
@@ -48,7 +54,7 @@ def markUpperPoint(event,x,y,flags,param):   # 標上唇頂點的位置
 
 if __name__ == "__main__":
     
-    fileName = 'testSheetShort2_8contain.csv'
+    fileName = 'testSheetShort_8contain.csv'
     try:
         csvDICT = CSVtoDICT("./{}".format(fileName))
         for key in csvDICT.keys():
@@ -87,8 +93,7 @@ if __name__ == "__main__":
         cv2.destroyAllWindows()
         stepLog += 1
         
-    #outputFILE = open("eightEndFrameID.csv", "w")
-    #w = csv.writer(outputFILE)
-    #w.writerow(eightEndLIST)
-    #outputFILE.close()
-    #os.system("mv {}_faceOptical_winsize{}.csv ./opticalFlow/faceArea".format(csvDICT[stepLog]["MP4FILE"][:-4],winsize))
+    outputFILE = open("eightEndFrameID.csv", "w")
+    w = csv.writer(outputFILE)
+    w.writerow(eightEndLIST)
+    outputFILE.close()
