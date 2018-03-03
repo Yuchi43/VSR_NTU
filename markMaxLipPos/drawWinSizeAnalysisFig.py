@@ -12,6 +12,10 @@ from matplotlib.font_manager import FontProperties
 
 '''
 這支是繪圖程式。
+前言：由於錄製資料庫時，每個 speaker 與攝影機的距離不定，因此在經由 markMaxMove.py 取得每個 speaker 最大的上下唇位移量後，
+     該位移量需要用臉的大小來做正規化。
+     此程式中的 drawRatioLineChart() 是採用臉寬 or 臉高來做位移量的正規化；
+     而 drawRatioMouthToEye() 是採用眼睛到臉底部的長度來做位移量的正規化。
 '''
 
 
@@ -37,7 +41,7 @@ def drawRatioLineChart():
     faceWidthLIST = CSVtoLIST("./result/manMade_face_boundingBox.csv")
     for i, item in enumerate(faceWidthLIST):
         speaker = item[0][:4]
-        faceWidth = int(item[3])-int(item[1])
+        faceWidth = int(item[3])-int(item[1])      # 要選擇臉寬還是臉高可以從這裡調整
         lipMaxMoveDic[speaker] = faceWidth
         print item
     lipMaxMove = CSVtoLIST("./result/lipCorners_upperAndLower/maxLipMove.csv")
@@ -91,7 +95,7 @@ def drawRatioLineChart():
     os.system("mv lipMoveRatio_faceWidth.png ./result")
     #plt.show()
 
-def markLeftEyePoint(event,x,y,flags,param):   # 標左眼中心的位置
+def markLeftEyePoint(event,x,y,flags,param):    # 標左眼中心的位置
     global leftEyeX,leftEyeY
     if event == cv2.EVENT_LBUTTONDOWN:
         leftEyeX,leftEyeY = x,y
@@ -106,6 +110,10 @@ def markRightEyePoint(event,x,y,flags,param):   # 標右眼中心的位置
 def drawRatioMouthToEye():
     '''
     畫出嘴巴最大位移量及眼睛到臉底部這兩區段的比值折線圖、統計值方圖、平均值及標準差。
+    
+    註：此函式包含人工標記影像中眼睛位置的步驟，藉此找出每個 speaker 眼睛至臉底部的長度。
+       人工標記的眼睛位置存在 ./result/manMadeEyePos.csv 中。
+       此函式是在人工標記完眼睛後，直接取用存在參數中的數值，而存出 manMadeEyePos.csv 只是以備不時之需。
     '''
     moveRatio = []
     eyePosLIST = []
@@ -216,5 +224,8 @@ def drawRatioMouthToEye():
 
 if __name__ == "__main__":
     
-    # 繪製
+    # 以臉寬 (高) 正規化上下唇最大位移量
     drawRatioLineChart()
+    
+    # 以眼睛至臉底部的長度正規化上下唇最大位移量
+    drawRatioMouthToEye()
