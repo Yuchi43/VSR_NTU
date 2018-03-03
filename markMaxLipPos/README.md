@@ -11,6 +11,6 @@
 
 Step1: 執行 markMaxMove.py，人工標記影片中受試者的上脣及下脣頂點的位置。  
 Step2: 執行 drawLipCorners.py，將人工標記的上下脣頂點繪製在受試者影像中。  
-Step3: 
+Step3: 執行 drawWinSizeAnalysisFig.py，繪製 40 位受試者上下唇最大位移量的分析圖。
 
 註：此實驗對應論文中的 3.4.2 節。
