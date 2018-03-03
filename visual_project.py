@@ -78,24 +78,24 @@ class SpeechSyllable:
         faceGrayImg = cv2.cvtColor(faceRgbImg,cv2.COLOR_BGR2GRAY)
         halfFaceGrayImg = faceGrayImg[:len(faceGrayImg)/2, :]
         firstLocalMin = self.histogramDraw(halfFaceGrayImg, pureFileName)  # 找到二元化門檻值 firstLocalMin
-
+        
         iterCount = 0
         while (iterCount < 21):
             if firstLocalMin < 0:
                 print "Can't find eyes with threshold lower than zero after 20 iteration in image."
                 return None
-
+            
             th, dst = cv2.threshold(halfFaceGrayImg, firstLocalMin, 255, cv2.THRESH_BINARY_INV)
-
+            
             # morphology
             EllipKernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(10,10))
             closingImg = cv2.morphologyEx(dst,cv2.MORPH_CLOSE,kernel=EllipKernel)
-
+            
             # label image
             lab, n = nd.label(closingImg)
             labLIST = lab.ravel().tolist()
             labResultLIST =  ([[x,labLIST.count(x)] for x in set(labLIST)])
-
+            
             for item in labResultLIST:
                 if item[1] < 100:
                     np.place(lab,lab == item[0], 0)
@@ -632,8 +632,8 @@ class GeometricMatching:
         siftPairs = self.getSiftFeature(baseRgbFrame, targetRgbFrame)
         restrictSiftPairs = self.faceAreaSIFTpoint(siftPairs)
         if showSiftResult:
-            self.saveSiftResult(siftPairs, baseRgbFrame, targetRgbFrame, "originSIFT",True)
-            self.saveSiftResult(restrictSiftPairs, baseRgbFrame, targetRgbFrame, "noseAreaSIFT",True)
+            #self.saveSiftResult(siftPairs, baseRgbFrame, targetRgbFrame, "originSIFT",True)
+            self.saveSiftResult(restrictSiftPairs, baseRgbFrame, targetRgbFrame, "faceAreaSIFT",True)
         if len(restrictSiftPairs) <= 1:
             if isFirstFrame:
                 return self.facePositionLIST
@@ -1080,7 +1080,6 @@ def main(fileName, syllable, geoMatch):
             fileName =csvDICT[stepLog]["MP4FILE"]
             speaker = fileName[:4]
             pureFileName = fileName[:-4]
-            
             cap = cv2.VideoCapture("./MP4Files/"+fileName)
             videoFPS = int(round(cap.get(5)))
             totalFrame = int(cap.get(7))
