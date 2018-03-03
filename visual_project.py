@@ -50,7 +50,7 @@ import matplotlib
 from  scipy import ndimage as nd
 from skimage.measure import regionprops
 
-frameRate = 30
+frameRate = 20
 outputPath = "./visualProjectResult/"
 outputPath4Eye = "./visualProjectResult/eyeDetect/"
 outputPath4Opt = "./visualProjectResult/groundTrueAnalysis/slideWinInterval/"
@@ -60,7 +60,7 @@ class SpeechSyllable:
     def __init__(self):
         pass
     
-    def getEyesPosition(self, faceRgbImg, fileName, saveFigNum):
+    def getEyesPosition(self, faceRgbImg, fileName):
         '''
         以數學型態學 closing 及連通體判斷，找出眼睛對(pair)的位置
         input: 人臉的 RGB 影像
@@ -77,7 +77,7 @@ class SpeechSyllable:
         #======================================
         faceGrayImg = cv2.cvtColor(faceRgbImg,cv2.COLOR_BGR2GRAY)
         halfFaceGrayImg = faceGrayImg[:len(faceGrayImg)/2, :]
-        firstLocalMin = self.histogramDraw(halfFaceGrayImg, pureFileName, saveFigNum)  # 找到二元化門檻值 firstLocalMin
+        firstLocalMin = self.histogramDraw(halfFaceGrayImg, pureFileName)  # 找到二元化門檻值 firstLocalMin
 
         iterCount = 0
         while (iterCount < 21):
@@ -131,7 +131,7 @@ class SpeechSyllable:
                     
             # 儲存每次疊代的結果
             stackImg = np.hstack((faceRgbImg[:len(faceGrayImg)/2, :],boundingImg))
-            cv2.imwrite('{}/{}_{}_iter{}.png'.format(self.saveFigPath, pureFileName, saveFigNum, iterCount), stackImg)
+            cv2.imwrite('{}/{}_iter{}.png'.format(self.saveFigPath, pureFileName, iterCount), stackImg)
             
             
             # 判斷質心的合理性
@@ -181,7 +181,7 @@ class SpeechSyllable:
                         cv2.rectangle(boundingImg1,(eyeObj[3],eyeObj[2]),(eyeObj[5],eyeObj[4]),color,2)
                     
                     stackImg1 = np.hstack((faceRgbImg[:len(faceGrayImg)/2, :],boundingImg1))
-                    cv2.imwrite('{}/{}_{}_eye_component.png'.format(self.saveFigPath,pureFileName,saveFigNum),stackImg1)
+                    cv2.imwrite('{}/{}_eye_component.png'.format(self.saveFigPath,pureFileName),stackImg1)
                     
                     return [trueEyePair[0][0], trueEyePair[0][1], trueEyePair[1][0], trueEyePair[1][1]]
                 else:
@@ -192,7 +192,7 @@ class SpeechSyllable:
             print "{} can't find eye after 20 iteration".format(pureFileName)
             return None
     
-    def histogramDraw(self, matrix, fileName, saveFigNum):   # 畫出 histogram
+    def histogramDraw(self, matrix, fileName):   # 畫出 histogram
         maxvalue = matrix.max()
         #---histogram
         bins = np.arange(maxvalue + 1)
@@ -235,7 +235,7 @@ class SpeechSyllable:
         ax1.set_title("smoothing")
         ax1.axvline(x=firstLocalMin, linewidth=2, color='r')
         
-        fig.savefig('{}/{}_{}_halfFaceHist.png'.format(self.saveFigPath,fileName,saveFigNum),bbox_inches='tight')
+        fig.savefig('{}/{}_halfFaceHist.png'.format(self.saveFigPath,fileName),bbox_inches='tight')
         plt.clf()
         
         return firstLocalMin
@@ -319,16 +319,6 @@ class SpeechSyllable:
                 colorImg[mask] = color
         cv2.imwrite(saveFigName,colorImg)
     
-    def getAudioSignalTime(self, fileName):
-        '''
-        input: 影片的檔案名稱，e.g. xxx.MP4
-        output: 由聲音訊號分析取得影片中連續訊號組各自的起訖時間，
-                即 [[訊號1起，訊號1訖],[訊號2起，訊號2訖],[訊號3起，訊號3訖],...]，
-                舉例說明，呼叫 getAudioSignalTime() 將回傳 [[0.3,1.2],[1.5,2.1],[2.5,3.1],...]
-                list 中數值的單位為秒(s)。
-        '''
-        pass
-    
     def getSyllableGroundTruth(self, videoName):
         '''
         取得 Praat 人工切的影片音節位置，output 格式為 [x1, x2, x3, x4, ...]，x 為音節位置的時間 
@@ -366,19 +356,16 @@ class SpeechSyllable:
         optWinsize = int((faceBbHeight-(leftEyeY+rightEyeY)/2.0)*0.3)
         return optWinsize
     
-    def filterFunc(self, x):
-        return (x>self.startTimeSecond) and (x<self.endTimeSecond)
-    
-    def drawOptFigure(self, videoName, optMagLIST1, optMagLIST2, startTimeSecond, endTimeSecond, saveNum, optPeakPos, optMinPos, audioGroundTruth):  # , optMagLIST3, optMagLIST4
+    def drawOptFigure(self, videoName, optMagLIST1, optMagLIST2, optPeakPos, optMinPos, audioGroundTruth):  # , optMagLIST3, optMagLIST4
         '''
         畫出光流大小折線圖(固定人臉框、sift 調整人臉框)、波形能量圖及人工標變動時間圖。
         input: videoName - 應用光流法的影片名稱
                optMagLIST1 - 固定人臉框的光流大小，資料型態為 list。
                optMagLIST2 - sift 調整人臉框後的光流大小，資料型態為 list。
                optMagLIST3 - sift + area matching 調整人臉框後的光流大小，資料型態為 list。
-               startTimeSecond - 光流第一個值對應的時間，單位為秒。
         output: matplotlib figure。
         '''
+        pureVideoName = videoName[:-4]
         speakerName = videoName[:4]
         kind = videoName[5]
         if kind == 'R':
@@ -387,23 +374,18 @@ class SpeechSyllable:
         else:
             kind1 = 'speaking'
             kind2 = 'Speaking'
-        self.startTimeSecond = startTimeSecond
-        self.endTimeSecond = endTimeSecond #startTimeSecond + len(optMagLIST1)/float(frameRate)
         
         #=====取得影像音節
         obj = GeometricMatching()
-        imgSyllableLIST = obj.csvToList("./experiment_data/{}/{}_{}/{}_image_syllable_man.csv".format(speakerName,speakerName,kind2,videoName[:-4]))[0]
-        
+        imgSyllableLIST = obj.csvToList("./experiment_data/{}/{}_{}/{}_image_syllable_man.csv".format(speakerName,speakerName,kind2,pureVideoName))[0]
         imgSyllableLIST = np.array(imgSyllableLIST,dtype='uint16')
         imgSyllableLIST = imgSyllableLIST/120.0
-        imgSyllableLIST = filter(self.filterFunc, imgSyllableLIST)
         #=====取得聲音波形
-        wavFile = open("./experiment_data/Database (wavNormalized)/{}/{}_{}/{}.json".format(speakerName,speakerName,kind1,videoName[:-4]), "r")
+        wavFile = open("./experiment_data/Database (wavNormalized)/{}/{}_{}/{}.json".format(speakerName,speakerName,kind1,pureVideoName), "r")
         wavText = wavFile.read()
         wavLIST = json.loads(wavText)
-        wavLIST = wavLIST[(int(self.startTimeSecond*44100)):(int(self.endTimeSecond*44100))]
         #=====取得聲音音節
-        #wavPath = "./experiment_data/audioSyllable/{}.json".format(videoName[:-4])
+        #wavPath = "./experiment_data/audioSyllable/{}.json".format(pureVideoName)
         #wavFileFlag = False
         #if os.path.exists(wavPath):
             #wavFileFlag = True
@@ -420,10 +402,10 @@ class SpeechSyllable:
                     #for subItem in filter(self.filterFunc,syllable):
                         #audioSyllableEven.append(subItem)
         
-        axisX_opt = np.arange(startTimeSecond,self.endTimeSecond+1,1.0/frameRate)
+        axisX_opt = np.arange(0,50,1.0/frameRate)
         axisX_opt = axisX_opt[1:len(optMagLIST1)+1]
         
-        axisX_wav = np.arange(startTimeSecond,self.endTimeSecond+1,1.0/(44100))
+        axisX_wav = np.arange(0,50,1.0/(44100))
         axisX_wav = axisX_wav[:len(wavLIST)]
         
         fig = plt.figure()
@@ -433,15 +415,21 @@ class SpeechSyllable:
         #fig.set_size_inches(21.5,6.5, forward = True)
         gs2 = gridspec.GridSpec(5, 1)
         ax1 = fig.add_subplot(gs2[0,0])
-        ax2 = fig.add_subplot(gs2[1,0],sharex=ax1)
-        ax7 = fig.add_subplot(gs2[2,0],sharex=ax1)
-        ax5 = fig.add_subplot(gs2[3,0],sharex=ax1)
-        ax6 = fig.add_subplot(gs2[4,0],sharex=ax1)
+        ax2 = fig.add_subplot(gs2[1,0], sharex=ax1, sharey = ax1)
+        ax7 = fig.add_subplot(gs2[2,0], sharex=ax1, sharey = ax1)
+        ax5 = fig.add_subplot(gs2[3,0], sharex=ax1, sharey = ax1)
+        ax6 = fig.add_subplot(gs2[4,0], sharex=ax1, sharey = ax1)
         gs2.update(hspace=0.5)
+        
+        plt.xlim(0,max(axisX_opt))
+        plt.xticks(np.arange(0,max(axisX_opt),0.5))
+        plt.yticks(np.arange(0,1.5,0.5))
+        plt.xlabel('Time(sec.)')
+        
         # ax1 未經處理的光流大小總和折線圖
         plot1, = ax1.plot(axisX_opt,optMagLIST1,color = 'mediumblue',linewidth=2)
         ax1.set_ylim(0.0,max(optMagLIST1))
-        ax1.set_title('{}  halfFace optical flow magnitude sum (pure)'.format(videoName[:-4]))
+        ax1.set_title('{}  halfFace optical flow magnitude sum (pure, {}fps)'.format(pureVideoName, frameRate))
         #ax1.legend([plot1,],('flow magnitude',), numpoints = 3)
         
         # ax2 以 sift 調整過的光流大小總和折線圖
@@ -449,19 +437,19 @@ class SpeechSyllable:
         for item in optPeakPos:
             ax2.axvline(x=item, linewidth=2, color='gray')
         ax2.set_ylim(0.0,max(optMagLIST2))
-        ax2.set_title('{}  halfFace optical flow magnitude sum (sift_square)'.format(videoName[:-4]))
+        ax2.set_title('{}  halfFace optical flow magnitude sum (sift_square, {}fps)'.format(pureVideoName, frameRate))
         #ax2.legend([plot2,],('flow magnitude',), numpoints = 3)
         
         # ax3 以 sift + area matching 調整過的光流大小總和折線圖
         #plot3, = ax3.plot(axisX_opt,optMagLIST3,color = 'mediumblue',linewidth=2)
         #ax3.set_ylim(0.0,max(optMagLIST3))
-        #ax3.set_title('{}  halfFace optical flow magnitude sum (sift_RMSD)'.format(videoName[:-4]))
+        #ax3.set_title('{}  halfFace optical flow magnitude sum (sift_RMSD)'.format(pureVideoName))
         #ax3.legend([plot2,],('flow magnitude',), numpoints = 3)
         
         # ax4 以 sift + area matching + angle filter 調整過的光流大小總和折線圖
         #plot4, = ax4.plot(axisX_opt,optMagLIST4,color = 'mediumblue',linewidth=2)
         #ax4.set_ylim(0.0,max(optMagLIST4))
-        #ax4.set_title('{}  halfFace optical flow magnitude sum (sift_RMSD_square)'.format(videoName[:-4]))
+        #ax4.set_title('{}  halfFace optical flow magnitude sum (sift_RMSD_square)'.format(pureVideoName))
         #ax4.legend([plot2,],('flow magnitude',), numpoints = 3)
         
         # ax7 波型能量圖(標示變動量最低點)
@@ -470,7 +458,7 @@ class SpeechSyllable:
             ax7.axvline(x=item, linewidth=2, color='forestgreen')
         ax7.set_ylim(min(wavLIST),max(wavLIST))
         ax7.set_yticks(np.arange(-1,1.5,0.5))
-        ax7.set_title('{} wav energy(mark minimum position)'.format(videoName[:-4]))
+        ax7.set_title('{} wav energy(mark minimum position)'.format(pureVideoName))
         #ax7.legend([plot7,],('wav energy',), numpoints = 3)
         
         # ax5 波型能量圖(ground truth)
@@ -484,7 +472,7 @@ class SpeechSyllable:
                 #ax5.axvline(x=item, linewidth=2, color='orange')
         ax5.set_ylim(min(wavLIST),max(wavLIST))
         ax5.set_yticks(np.arange(-1,1.5,0.5))
-        ax5.set_title('{} wav energy (ground truth)'.format(videoName[:-4]))
+        ax5.set_title('{} wav energy (ground truth)'.format(pureVideoName))
         #ax5.legend([plot5,],('wav energy',), numpoints = 3)
         
         # ax6 影像上人工切的音節位置
@@ -492,17 +480,14 @@ class SpeechSyllable:
             ax6.axvline(x=item, linewidth=2, color='gray')
         ax6.set_ylim(0.0,1)
         ax6.set_yticks(np.arange(0,2,1))
-        ax6.set_title("{} image syllable by man".format(videoName[:-4]))
+        ax6.set_title("{} image syllable by man".format(pureVideoName))
         #------------------
-        plt.xlim(0,max(axisX_opt))
-        plt.xticks(np.arange(0,max(axisX_opt),0.5))
-        plt.xlabel('Time(sec.)')
+        
         
         #plt.show()
-        fig.savefig('{}optFig/{}_{}_halfFaceOpt_square_groundTrue.png'.format(outputPath4Opt, videoName[:-4], saveNum),bbox_inches='tight')
-        #plt.clf()
-        #plt.close()
-        #os.system("mv {}_{}_halfFace_opticalFlow_histogramAnalysis_peakPosMean.png ./opticalFlow/halfFaceArea/histogramAnalysis/optMagLineChart/version3_minPos/mean".format(videoName[:-4],frameID))
+        fig.savefig('{}optFig/{}_{}fps_squareOpt.png'.format(outputPath4Opt, pureVideoName, frameRate),bbox_inches='tight')
+        plt.clf()
+        plt.close()
         
     def angleFilterAnalysis(self, siftAngMatrix):
         bins = np.arange(360 + 1)
@@ -550,24 +535,32 @@ class SpeechSyllable:
         else:
             kind = 'speaking'
         
-        winStartIdLIST = np.arange(0, len(optMagList), 10)
         peakPosIndexLIST = []   # 紀錄尖點位置在光流大小折線圖中的索引值
         minPosIndexLIST = []   # 紀錄兩尖點中的最低點在光流大小折線圖中的索引值
-        for winStartID in winStartIdLIST:
-            if (winStartID+29) < len(optMagList):
-                subOptMagList = optMagList[winStartID:winStartID+30]
-                peakPosTemp = []
-                for k, item in enumerate(subOptMagList):
-                    if (k == 0) or (k == len(subOptMagList)-1):
-                        pass
-                    else:
-                        if (item > subOptMagList[k-1]) and (item > subOptMagList[k+1]):
-                            peakPosTemp.append([k, subOptMagList[k]])
-                peakPosTemp.sort(key=lambda x: x[1], reverse=True)
-                for peak in np.array(peakPosTemp)[:,0][:3]:
-                    if (peak+winStartID) not in peakPosIndexLIST:
-                        peakPosIndexLIST.append(int(peak+winStartID))
-                        
+    
+        totalSignalTime = len(optMagList)/float(frameRate)
+        optMagTimeList = np.arange(0, 50, 1.0/frameRate)
+        optMagTimeList = optMagTimeList[1:len(optMagList)+1]
+        
+        winStartTimeLIST = np.arange(0, totalSignalTime, 1.0/3)
+        for winStartTime in winStartTimeLIST:
+            optMagTimeSubList = filter(lambda x: (x>winStartTime), optMagTimeList)
+            startIndex = np.where(optMagTimeList == optMagTimeSubList[0])[0][0]
+            if (startIndex+frameRate) >= len(optMagList):
+                break
+            subOptMagList = optMagList[startIndex:startIndex+frameRate]
+            peakPosTemp = []
+            for k, item in enumerate(subOptMagList):
+                if (k == 0) or (k == len(subOptMagList)-1):
+                    pass
+                else:
+                    if (item > subOptMagList[k-1]) and (item > subOptMagList[k+1]):
+                        peakPosTemp.append([k, subOptMagList[k]])
+            peakPosTemp.sort(key=lambda x: x[1], reverse=True)
+            for peak in np.array(peakPosTemp)[:,0][:3]:
+                if (peak+startIndex) not in peakPosIndexLIST:
+                    peakPosIndexLIST.append(int(peak+startIndex))
+                    
         peakPosIndexLIST.sort()
         for i, peakIndex in enumerate(peakPosIndexLIST):
             if (i == len(peakPosIndexLIST)-1):
@@ -577,22 +570,22 @@ class SpeechSyllable:
                 patchMinIndex = peakIndex + np.argmin(lineChartPatch)
                 minPosIndexLIST.append(patchMinIndex)
         
-        minPosIndexLIST.sort()
-        peakPos = [(x+1)/30.0 for x in peakPosIndexLIST]
-        minPos = [(x+1)/30.0 for x in minPosIndexLIST]
+        #minPosIndexLIST.sort()
+        peakPos = [(x+1)/float(frameRate) for x in peakPosIndexLIST]
+        minPos = [(x+1)/float(frameRate) for x in minPosIndexLIST]
         
         # peakPos 寫檔
-        outputFILE = open("{}_peakPos_threeQuarter.csv".format(pureVideoName), "w")
+        outputFILE = open("{}_{}fps_peakPos.csv".format(pureVideoName, frameRate), "w")
         w = csv.writer(outputFILE)
         w.writerow(peakPos)
         outputFILE.close()
-        os.system("mv {}_peakPos_threeQuarter.csv {}imgSyllableCSV".format(pureVideoName, outputPath4Opt))
+        os.system("mv {}_{}fps_peakPos.csv {}imgSyllableCSV".format(pureVideoName, frameRate, outputPath4Opt))
         # minPos 寫檔
-        outputFILE = open("{}_minPos_threeQuarter.csv".format(pureVideoName), "w")
+        outputFILE = open("{}_{}fps_minPos.csv".format(pureVideoName, frameRate), "w")
         w = csv.writer(outputFILE)
         w.writerow(minPos)
         outputFILE.close()
-        os.system("mv {}_minPos_threeQuarter.csv {}imgSyllableCSV".format(pureVideoName, outputPath4Opt))
+        os.system("mv {}_{}fps_minPos.csv {}imgSyllableCSV".format(pureVideoName, frameRate, outputPath4Opt))
         
         return peakPos, minPos
 
@@ -645,7 +638,6 @@ class GeometricMatching:
                 return self.facePositionLIST
             else:
                 return None
-            
         
         siftPairForMap = self.pointsMatching(restrictSiftPairs, baseRgbFrame, targetRgbFrame, matchMethod)
         faceShiftX, faceShiftY = self.calcFaceShift(siftPairForMap)
@@ -1086,6 +1078,7 @@ def main(fileName, syllable, geoMatch):
         
         fileName =csvDICT[stepLog]["MP4FILE"]
         speaker = fileName[:4]
+        pureFileName = fileName[:-4]
         
         cap = cv2.VideoCapture("./MP4Files/"+fileName)
         videoFPS = int(round(cap.get(5)))
@@ -1093,191 +1086,123 @@ def main(fileName, syllable, geoMatch):
         step = 120.0/frameRate
         processFrame = np.array(np.arange(0,totalFrame,step),dtype='uint16')
         
-        #audioSignalPeriod = syllable.getAudioSignalTime(fileName)
-        # 假設訊號時間區段
-        #audioSignalPeriod = np.array([[5.8,7.2]])  # [1.0,1.5],
-        audioSignalPeriod = np.array([[0,totalFrame/120.0]])
-        for i, signalPeriod in enumerate(audioSignalPeriod):
-            startTimeSecond, endTimeSecond = signalPeriod
-            signalBeginFrameID, signalEndFrameID = signalPeriod*videoFPS
-            
-            cap.set(1, signalBeginFrameID-1)
-            
-            ret, oldRgbFrame = cap.read()
-            oldFacePosition = geoMatch.getFacePosition(isFirstFrame=True, videoName=fileName, targetRgbFrame=oldRgbFrame, matchMethod="RMSD")  # , showSiftResult = True
-            baseIx, baseIy, baseFx, baseFy = oldFacePosition
-            oldFacePositionMatch = oldFacePosition
-            targetFacePosition = oldFacePosition
-            
-            oldFaceRgbFrame = copy.deepcopy(oldRgbFrame[baseIy:baseFy+1, baseIx:baseFx+1])
-            eyePosition = syllable.getEyesPosition(oldFaceRgbFrame, fileName, i)
-            
-            if not eyePosition:    # 無法取得當前眼睛位置時，直接以人工標的眼睛位置取代。
-                leftEyeX, leftEyeY, rightEyeX, rightEyeY = eyePosDict[speaker]
-                ix, iy, fx, fy = facePosDict[speaker]
-                eyePosition = leftEyeX-ix, leftEyeY-iy, rightEyeX-ix, rightEyeY-iy
-            
-            optWinsize = syllable.getOptWinsize(oldFacePosition, eyePosition)
-            
-            prvsAreaMatchRgbFace = oldRgbFrame[baseIy:baseFy+1,baseIx:baseFx+1]
-            oldGrayFrame = cv2.cvtColor(oldRgbFrame, cv2.COLOR_BGR2GRAY)
-            prvsOriginGrayFace = oldGrayFrame[baseIy:baseFy+1,baseIx:baseFx+1]
-            prvsSiftGrayFace = oldGrayFrame[baseIy:baseFy+1,baseIx:baseFx+1]
-            prevAreaMatchGrayFace = oldGrayFrame[baseIy:baseFy+1,baseIx:baseFx+1]
-            
-            originOptSumLIST = []
-            siftOptSumLIST = []
-            originOptSquareSumLIST = []
-            siftOptSquareSumLIST = []
-            
-            #areaMatchOptSumLIST = []
-            #angleFilterOptSumLIST = []
-            #skinFilterOptSumLIST = []
-            
-            #fourcc = cv2.cv.CV_FOURCC('X','V','I','D')
-            #out = cv2.VideoWriter('{}_siftMatch_all_{}fps.avi'.format(fileName[:-4], frameRate),fourcc, 30.0,((baseFx-baseIx+1)*2,(baseFy-baseIy+1)))
-            
-            frameID = signalBeginFrameID
-            firstFrameID = 0
-            while (frameID < signalEndFrameID):
-                ret, currentRgbFrame = cap.read()
-                if cv2.waitKey(1) & 0xFF == ord("q"):
-                    break
-                if currentRgbFrame == None:
-                    break
-                if frameID in processFrame:
-                    print frameID
-                    if firstFrameID == 0:
-                        firstFrameID = frameID
-                    currentFacePosition = geoMatch.getFacePosition(baseRgbFrame=oldRgbFrame, baseFacePosition=oldFacePosition, targetRgbFrame=currentRgbFrame, matchMethod="RMSD")
-                    if not currentFacePosition:
-                        print "lack of restrict sift!"     # 無法以 sift 偵測當前人臉位置。人臉位置以前一張 frame 的人臉位置取代。
-                    else:
-                        targetFacePosition = currentFacePosition
-                    ix, iy, fx, fy = targetFacePosition
-                    
-                    
-                    #currentFacePositionMatch = geoMatch.getFacePosition(baseRgbFrame=oldRgbFrame, baseFacePosition=oldFacePositionMatch, targetRgbFrame=currentRgbFrame, matchMethod="superimpose")
-                    #if not currentFacePositionMatch:
-                        #print "lack of restrict sift!"     # 無法以 sift 偵測當前人臉位置。人臉位置以前一張 frame 的人臉位置取代。
-                    #else:
-                        #targetFacePositionTemp = currentFacePositionMatch
-                    #ixM, iyM, fxM, fyM = targetFacePositionTemp
-                    
-                    currentSiftRgbFace = copy.deepcopy(currentRgbFrame[iy:fy+1,ix:fx+1])
-                    #currentSiftRgbFace_AreaMatch = currentRgbFrame[iyM:fyM+1,ixM:fxM+1]    # 以 currentSiftRgbFace_AreaMatch 當作 superimpose 的測試結果圖
-                    currentGrayFrame = cv2.cvtColor(currentRgbFrame, cv2.COLOR_BGR2GRAY)
-                    nextOriginGrayFace = currentGrayFrame[baseIy:baseFy+1,baseIx:baseFx+1]
-                    nextSiftGrayFace = currentGrayFrame[iy:fy+1,ix:fx+1]
-                    #nextAreaMatchGrayFace = currentGrayFrame[iyM:fyM+1,ixM:fxM+1]
-                    
-                    # === 以皮膚顏色區塊做細部疊合 ===
-                    #xShift, yShift, matchingShow = geoMatch.areaMatching(prvsAreaMatchRgbFace, currentSiftRgbFace_AreaMatch)
-                    #targetFacePositionMatch = [ixM+xShift, iyM+yShift, fxM+xShift, fyM+yShift]
-                    #ixMatch, iyMatch, fxMatch, fyMatch = targetFacePositionMatch
-                    #currentAreaMatchRgbFace = currentRgbFrame[iyMatch:fyMatch+1,ixMatch:fxMatch+1]
-                    #nextAreaMatchGrayFace = currentGrayFrame[iyMatch:fyMatch+1,ixMatch:fxMatch+1]
-                    #matchingShow = cv2.cvtColor(matchingShow, cv2.COLOR_GRAY2BGR)
-                    
-                    # === 將調整前後的人臉位置以影片方式寫檔 ===
-                    #originFaceImg = copy.deepcopy(currentRgbFrame[baseIy:baseFy+1,baseIx:baseFx+1])
-                    #stackImg1 = np.hstack((originFaceImg, matchingShow))
-                    #stackImg2 = np.hstack((currentSiftRgbFace, currentAreaMatchRgbFace))
-                    
-                    #cv2.line(originFaceImg, (0,len(originFaceImg)/2), (len(originFaceImg[0])-1,len(originFaceImg)/2), [0,255,0], thickness=1)
-                    #cv2.line(originFaceImg, (len(originFaceImg[0])/2,0), (len(originFaceImg[0])/2,len(originFaceImg)-1), [0,255,0], thickness=1)
-                    #cv2.line(currentSiftRgbFace, (0,len(currentSiftRgbFace)/2), (len(currentSiftRgbFace[0])-1,len(currentSiftRgbFace)/2), [0,255,0], thickness=1)
-                    #cv2.line(currentSiftRgbFace, (len(currentSiftRgbFace[0])/2,0), (len(currentSiftRgbFace[0])/2,len(currentSiftRgbFace)-1), [0,255,0], thickness=1)
-                    
-                    #stackImg = np.hstack((originFaceImg,currentSiftRgbFace))
-                    #stackImg3 = np.hstack((stackImg,currentSiftRgbFace_AreaMatch))
-                    #cv2.imshow("origin & adjusted face position", stackImg3)
-                    #cv2.waitKey(0)
-                    #out.write(stackImg)
-                    # =============================================
-                    
-                    # === optical flow ===
-                    originFlow = cv2.calcOpticalFlowFarneback(prvsOriginGrayFace,nextOriginGrayFace, 0.5, 3, optWinsize, 3, 5, 1.2, 1)
-                    originMag, originAng = cv2.cartToPolar(originFlow[...,0], originFlow[...,1],angleInDegrees=1)
-                    originOptSumLIST.append(originMag[len(originMag)/2:].sum())
-                    #originOptSquareSumLIST.append(np.square(originMag[len(originMag)/2:]).sum())
-                    
-                    siftFlow = cv2.calcOpticalFlowFarneback(prvsSiftGrayFace,nextSiftGrayFace, 0.5, 3, optWinsize, 3, 5, 1.2, 1)
-                    siftMag, siftAng = cv2.cartToPolar(siftFlow[...,0], siftFlow[...,1],angleInDegrees=1)
-                    #siftOptSumLIST.append(siftMag[len(siftMag)/2:].sum())
-                    siftOptSquareSumLIST.append(np.square(siftMag[len(siftMag)/2:]).sum())
-                    
-                    #areaMatchFlow = cv2.calcOpticalFlowFarneback(prevAreaMatchGrayFace,nextAreaMatchGrayFace, 0.5, 3, optWinsize, 3, 5, 1.2, 1)
-                    #areaMatchMag, areaMatchAng = cv2.cartToPolar(areaMatchFlow[...,0], areaMatchFlow[...,1],angleInDegrees=1)
-                    #areaMatchOptSumLIST.append(areaMatchMag[len(areaMatchMag)/2:].sum())
-                    
-                    #innerMask = geoMatch.findInnerRegion(currentSiftRgbFace)
-                    #innerMask = np.invert(innerMask)
-                    #siftMag[innerMask] = 0
-                    #skinFilterOptSumLIST.append(siftMag[len(siftMag)/2:].sum())
-                    
-                    #==============================================
-                    
-                    # === flow image show ===
-                    #originMag = cv2.cvtColor(np.uint8(originMag*100), cv2.COLOR_GRAY2BGR)
-                    #siftMag = cv2.cvtColor(np.uint8(siftMag*100), cv2.COLOR_GRAY2RGB)
-                    
-                    #stackImg2 = np.hstack((originMag,siftMag))
-                    #stackImg3 = np.hstack((stackImg,stackImg2))
-                    #cv2.imshow("origin & adjusted optical flow", stackImg3)
-                    #==============================================
-                    
-                    # === 相同角度範圍的 pixel 個數多餘一半的下半臉時，濾除這些角度位置後再加總光流 ===
-                    #angFilter = syllable.angleFilterAnalysis(areaMatchAng)
-                    #areaMatchMag[angFilter] = 0
-                    #angleFilterOptSumLIST.append(areaMatchMag[len(areaMatchMag)/2:].sum())
-                    
-                    # === 更新舊矩陣 ===
-                    #prvsAreaMatchRgbFace = currentAreaMatchRgbFace
-                    
-                    oldRgbFrame = currentRgbFrame
-                    oldFacePosition = targetFacePosition
-                    #oldFacePositionMatch = targetFacePositionMatch
-                    #oldFacePositionMatch = targetFacePositionTemp
-                    
-                    prvsOriginGrayFace = nextOriginGrayFace
-                    prvsSiftGrayFace = nextSiftGrayFace
-                    #prevAreaMatchGrayFace = nextAreaMatchGrayFace
-                    
-                frameID += 1
-            #cv2.destroyAllWindows()
-            #out.release()
-            #os.system("mv {}_siftMatch_all_{}fps.avi {}siftMatchVideo".format(fileName[:-4], frameRate, outputPath))
-            
-            optPeakPos, optMinPos = syllable.findImageSyllable(fileName, siftOptSquareSumLIST)
-            audioGroundTruth, audioGroundTruthContent = syllable.getSyllableGroundTruth(fileName)
-            syllable.drawOptFigure(fileName, originOptSumLIST, siftOptSquareSumLIST, startTimeSecond, endTimeSecond, "all", optPeakPos, optMinPos, audioGroundTruth)
-            
-            # 光流大小寫檔
-            outputFILE = open("{}_{}fps_originOpt.csv".format(fileName[:-4],frameRate), "w")
-            w = csv.writer(outputFILE)
-            w.writerow(originOptSumLIST)
-            outputFILE.close()
-            os.system("mv {}_{}fps_originOpt.csv {}optCSV".format(fileName[:-4], frameRate, outputPath4Opt))
-            
-            #outputFILE = open("{}_{}fps_siftOpt_RMSD.csv".format(fileName[:-4],frameRate), "w")
-            #w = csv.writer(outputFILE)
-            #w.writerow(siftOptSumLIST)
-            #outputFILE.close()
-            #os.system("mv {}_{}fps_siftOpt_RMSD.csv {}optCSV".format(fileName[:-4], frameRate, outputPath))
-            
-            #outputFILE = open("{}_{}fps_originOptSquare.csv".format(fileName[:-4],frameRate), "w")
-            #w = csv.writer(outputFILE)
-            #w.writerow(originOptSquareSumLIST)
-            #outputFILE.close()
-            #os.system("mv {}_{}fps_originOptSquare.csv {}optCSV".format(fileName[:-4], frameRate, outputPath))
-            
-            outputFILE = open("{}_{}fps_siftOptSquare_RMSD.csv".format(fileName[:-4],frameRate), "w")
-            w = csv.writer(outputFILE)
-            w.writerow(siftOptSquareSumLIST)
-            outputFILE.close()
-            os.system("mv {}_{}fps_siftOptSquare_RMSD.csv {}optCSV".format(fileName[:-4], frameRate, outputPath4Opt))
-            
+        # ===== 偵測第 1 張 frame 中的人臉位置及眼睛位置 =====
+        ret, oldRgbFrame = cap.read()
+        oldFacePosition = geoMatch.getFacePosition(isFirstFrame=True, videoName=fileName, targetRgbFrame=oldRgbFrame, matchMethod="RMSD")  # , showSiftResult = True
+        baseIx, baseIy, baseFx, baseFy = oldFacePosition
+        targetFacePosition = oldFacePosition
+        
+        oldFaceRgbFrame = copy.deepcopy(oldRgbFrame[baseIy:baseFy+1, baseIx:baseFx+1])
+        eyePosition = syllable.getEyesPosition(oldFaceRgbFrame, fileName)
+        
+        if not eyePosition:    # 無法取得當前眼睛位置時，直接以人工標的眼睛位置取代。
+            leftEyeX, leftEyeY, rightEyeX, rightEyeY = eyePosDict[speaker]
+            ix, iy, fx, fy = facePosDict[speaker]
+            eyePosition = leftEyeX-ix, leftEyeY-iy, rightEyeX-ix, rightEyeY-iy
+        
+        # ===== 準備光流法的參數 winsize 及 灰階影像 =====
+        optWinsize = syllable.getOptWinsize(oldFacePosition, eyePosition)
+        
+        oldGrayFrame = cv2.cvtColor(oldRgbFrame, cv2.COLOR_BGR2GRAY)
+        prvsOriginGrayFace = copy.deepcopy(oldGrayFrame[baseIy:baseFy+1,baseIx:baseFx+1])
+        prvsSiftGrayFace = copy.deepcopy(oldGrayFrame[baseIy:baseFy+1,baseIx:baseFx+1])
+        
+        originOptSumLIST = []
+        #originOptSquareSumLIST = []
+        #siftOptSumLIST = []
+        siftOptSquareSumLIST = []
+        
+        #fourcc = cv2.cv.CV_FOURCC('X','V','I','D')
+        #out = cv2.VideoWriter('{}_siftMatch_all_{}fps.avi'.format(pureFileName, frameRate),fourcc, 30.0,((baseFx-baseIx+1)*2,(baseFy-baseIy+1)))
+        
+        frameID = 1
+        while True:
+            ret, currentRgbFrame = cap.read()
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+            if currentRgbFrame == None:
+                break
+            if frameID in processFrame:
+                print frameID
+                currentFacePosition = geoMatch.getFacePosition(baseRgbFrame=oldRgbFrame, baseFacePosition=oldFacePosition, targetRgbFrame=currentRgbFrame, matchMethod="RMSD")
+                if not currentFacePosition:
+                    print "lack of restrict sift!"     # 無法以 sift 偵測當前人臉位置。人臉位置以前一張 frame 的人臉位置取代。
+                else:
+                    targetFacePosition = currentFacePosition
+                ix, iy, fx, fy = targetFacePosition
+                
+                currentSiftRgbFace = copy.deepcopy(currentRgbFrame[iy:fy+1,ix:fx+1])
+                
+                currentGrayFrame = cv2.cvtColor(currentRgbFrame, cv2.COLOR_BGR2GRAY)
+                nextOriginGrayFace = currentGrayFrame[baseIy:baseFy+1,baseIx:baseFx+1]
+                nextSiftGrayFace = currentGrayFrame[iy:fy+1,ix:fx+1]
+                
+                # === 將調整前後的人臉位置以影片方式寫檔 ===
+                #originFaceImg = copy.deepcopy(currentRgbFrame[baseIy:baseFy+1,baseIx:baseFx+1])
+                
+                #cv2.line(originFaceImg, (0,len(originFaceImg)/2), (len(originFaceImg[0])-1,len(originFaceImg)/2), [0,255,0], thickness=1)
+                #cv2.line(originFaceImg, (len(originFaceImg[0])/2,0), (len(originFaceImg[0])/2,len(originFaceImg)-1), [0,255,0], thickness=1)
+                #cv2.line(currentSiftRgbFace, (0,len(currentSiftRgbFace)/2), (len(currentSiftRgbFace[0])-1,len(currentSiftRgbFace)/2), [0,255,0], thickness=1)
+                #cv2.line(currentSiftRgbFace, (len(currentSiftRgbFace[0])/2,0), (len(currentSiftRgbFace[0])/2,len(currentSiftRgbFace)-1), [0,255,0], thickness=1)
+                
+                #stackImg = np.hstack((originFaceImg,currentSiftRgbFace))
+                #cv2.imshow("origin & sift face position", stackImg)
+                #out.write(stackImg)
+                # =============================================
+                
+                # === optical flow ===
+                originFlow = cv2.calcOpticalFlowFarneback(prvsOriginGrayFace,nextOriginGrayFace, 0.5, 3, optWinsize, 3, 5, 1.2, 1)
+                originMag, originAng = cv2.cartToPolar(originFlow[...,0], originFlow[...,1],angleInDegrees=1)
+                originOptSumLIST.append(originMag[len(originMag)/2:].sum())
+                #originOptSquareSumLIST.append(np.square(originMag[len(originMag)/2:]).sum())
+                
+                siftFlow = cv2.calcOpticalFlowFarneback(prvsSiftGrayFace,nextSiftGrayFace, 0.5, 3, optWinsize, 3, 5, 1.2, 1)
+                siftMag, siftAng = cv2.cartToPolar(siftFlow[...,0], siftFlow[...,1],angleInDegrees=1)
+                #siftOptSumLIST.append(siftMag[len(siftMag)/2:].sum())
+                siftOptSquareSumLIST.append(np.square(siftMag[len(siftMag)/2:]).sum())
+                
+                # === flow image show ===
+                #originMag = cv2.cvtColor(np.uint8(originMag*100), cv2.COLOR_GRAY2BGR)
+                #siftMag = cv2.cvtColor(np.uint8(siftMag*100), cv2.COLOR_GRAY2RGB)
+                
+                #stackImg2 = np.hstack((originMag,siftMag))
+                #stackImg3 = np.hstack((stackImg,stackImg2))
+                #cv2.imshow("origin & sift optical flow", stackImg3)
+                
+                # ===== 更新舊矩陣 =====
+                oldRgbFrame = currentRgbFrame
+                oldFacePosition = targetFacePosition
+                
+                prvsOriginGrayFace = nextOriginGrayFace
+                prvsSiftGrayFace = nextSiftGrayFace
+                
+            frameID += 1
+        #cv2.destroyAllWindows()
+        #out.release()
+        #os.system("mv {}_siftMatch_all_{}fps.avi {}siftMatchVideo".format(pureFileName, frameRate, outputPath))
+        
+        maxValue = max(originOptSumLIST)
+        originOptSumLIST = [item/float(maxValue) for item in originOptSumLIST]
+        maxValue = max(siftOptSquareSumLIST)
+        siftOptSquareSumLIST = [item/float(maxValue) for item in siftOptSquareSumLIST]
+        
+        optPeakPos, optMinPos = syllable.findImageSyllable(fileName, siftOptSquareSumLIST)
+        audioGroundTruth, audioGroundTruthContent = syllable.getSyllableGroundTruth(fileName)
+        syllable.drawOptFigure(fileName, originOptSumLIST, siftOptSquareSumLIST, optPeakPos, optMinPos, audioGroundTruth)
+        
+        # 光流大小寫檔
+        outputFILE = open("{}_{}fps_originOpt.csv".format(pureFileName,frameRate), "w")
+        w = csv.writer(outputFILE)
+        w.writerow(originOptSumLIST)
+        outputFILE.close()
+        os.system("mv {}_{}fps_originOpt.csv {}optCSV".format(pureFileName, frameRate, outputPath4Opt))
+        
+        outputFILE = open("{}_{}fps_siftOptSquare_RMSD.csv".format(pureFileName,frameRate), "w")
+        w = csv.writer(outputFILE)
+        w.writerow(siftOptSquareSumLIST)
+        outputFILE.close()
+        os.system("mv {}_{}fps_siftOptSquare_RMSD.csv {}optCSV".format(pureFileName, frameRate, outputPath4Opt))
+        
         cap.release()
         
         
