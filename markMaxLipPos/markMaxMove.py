@@ -14,8 +14,22 @@ import cv2
 
 目標：取得每個 speaker 嘴唇變化的最大量。
 方法：以人工的方式標出 40 個 speaker 在念數字 8 時，上唇頂點及下唇頂點原始位置，紀錄該 frameID 及座標點。
+操作說明：程式執行後，首先播放第一部影片的第 1 張 frame， 視窗上顯示「mark upper lip corner」，用滑鼠點擊上唇頂點的位置，點擊後程式會將該點的 x, y 紀錄下來，
+        不滿意點擊的位置可以重複點擊，程式會更新儲存的參數，滿意後點擊按鍵「q」可以換成點擊下唇頂點位置，視窗顯示 「mark lower lip corner」，操作與點擊上唇頂點相同。
+        第 1 張 frame 完成後會接著播放第 4 張 frame (每 3 張標記一次頂點位置)，完成一部影片的標記後，會存出一個檔案 (見註2 第1點)。
+        
+        40 部影片都完成後，程式會存出每個 speaker 上下唇變化的最大量 (見註2 第2點)。
 
-註：影片取得方式詳見 VSR_NTU 中的 README.md。
+
+註1：影片取得方式詳見 VSR_NTU 中的 README.md。
+註2：這支程式最後會存出兩個類型的檔案，分別是 
+    1. {影片名稱}_upperAndLowerLip.csv     紀錄每三張 frame 標記一次上下唇頂點的位置資訊 (每個 speaker 的影片會存出一個 csv 檔)
+                                         [格式]
+                                         frameID, upperX, upperY, lowerX, lowerY
+                                          
+    2. maxLipMove.csv                    彙整 40 個 speaker 上下唇變動的最大量
+                                         [格式]
+                                         影片名稱, upperMaxMove, lowerMaxMove
 '''
 
 def CSVtoDICT(csvFILE):
@@ -140,9 +154,9 @@ if __name__ == "__main__":
         w = csv.writer(outputFILE)
         w.writerows(singleSpeakerLipBound)
         outputFILE.close()
-        os.system("mv {}_upperAndLowerLip.csv ./opticalFlow/lipCorners_upperAndLower".format(csvDICT[stepLog]["MP4FILE"][:-4]))
+        os.system("mv {}_upperAndLowerLip.csv ./result/lipCorners_upperAndLower".format(csvDICT[stepLog]["MP4FILE"][:-4]))
         
-        # 計算 speaker 上唇頂點 row 的最差距 及 下唇頂點 row 的最差距, 儲存在 maxMoveLIST 中
+        # 計算 speaker 上唇頂點 row 的最大差距 及 下唇頂點 row 的最大差距, 儲存在 maxMoveLIST 中
         upperLipRowLIST.sort()
         lowerLipRowLIST.sort()
         
@@ -156,4 +170,4 @@ if __name__ == "__main__":
     w = csv.writer(outputFILE)
     w.writerows(maxMoveLIST)
     outputFILE.close()
-    os.system("mv maxLipMove.csv ./opticalFlow/lipCorners_upperAndLower")
+    os.system("mv maxLipMove.csv ./result/lipCorners_upperAndLower")
