@@ -10,6 +10,12 @@ import cv2
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 
+'''
+這支是繪圖程式。
+'''
+
+
+
 def CSVtoLIST(fileName):
     csvFILE = open(fileName, "r")
     csvObj = csv.reader(csvFILE)
@@ -238,5 +244,8 @@ def drawRatioMouthToEye():
 
 
 if __name__ == "__main__":
+    
+    
+    
     
     drawRatioLineChart()
