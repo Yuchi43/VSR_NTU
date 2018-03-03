@@ -27,35 +27,6 @@ def CSVtoLIST(fileName):
 
     return csvLIST
 
-def drawLipCorner():
-    '''
-    將人工標示的連續數字8上唇下唇頂點畫在同一張 speaker 的 frame 上，顯示該 speaker 嘴巴的最大變動區間。
-    '''
-    lipCornerPos = CSVtoLIST("./opticalFlow/lipCorners_upperAndLower/LXCP_R_81139_upperAndLowerLip.csv")
-    lipCornerPos = np.array(lipCornerPos,dtype='uint16')
-    
-    cap = cv2.VideoCapture("./MP4Files/LXCP_R_81139.MP4")
-    
-    frameID = 0
-    while True:
-        ret, frame = cap.read()
-        if frame == None:
-            break
-        else:
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
-            for corner in lipCornerPos:
-                cv2.circle(frame, (corner[1], corner[2]), 2, [0,255,0], -1)
-                cv2.circle(frame, (corner[3], corner[4]), 2, [0,0,255], -1)
-            
-            cv2.imshow("test",frame)
-            #cv2.waitKey(0)
-            #cv2.imwrite("LXCP_maxLipMove.jpg",frame)
-            time.sleep(0.02)
-        frameID += 1
-    
-    cv2.destroyAllWindows()
-
 def drawRatioLineChart():
     '''
     畫出 speaker 嘴巴的最大位移量及臉寬（高）的比值折線圖、統計直方圖、平均值及標準差。
@@ -63,13 +34,13 @@ def drawRatioLineChart():
     moveRatio = []
     
     lipMaxMoveDic = {}
-    faceWidthLIST = CSVtoLIST("./manMade_face_boundingBox.csv")
+    faceWidthLIST = CSVtoLIST("./result/manMade_face_boundingBox.csv")
     for i, item in enumerate(faceWidthLIST):
         speaker = item[0][:4]
         faceWidth = int(item[3])-int(item[1])
         lipMaxMoveDic[speaker] = faceWidth
         print item
-    lipMaxMove = CSVtoLIST("./opticalFlow/lipCorners_upperAndLower/maxLipMove.csv")
+    lipMaxMove = CSVtoLIST("./result/lipCorners_upperAndLower/maxLipMove.csv")
     speakerLIST = []
     ratio = []
     for i, item in enumerate(lipMaxMove):
@@ -89,7 +60,7 @@ def drawRatioLineChart():
     w = csv.writer(outputFILE)
     w.writerows(moveRatio)
     outputFILE.close()
-    os.system("mv maxLipMoveRatio_faceWidth.csv ./opticalFlow")
+    os.system("mv maxLipMoveRatio_faceWidth.csv ./result")
     
     x_axis = np.arange(1,len(speakerLIST)+1)
     
@@ -117,7 +88,7 @@ def drawRatioLineChart():
     ax1.text(0.18, 7, 'mean: {}'.format(ratioMean), style='italic',bbox={'facecolor':'red', 'alpha':0.5, 'pad':5})
     ax1.text(0.18, 5.3, 'std: {}'.format(ratioStd), style='italic',bbox={'facecolor':'red', 'alpha':0.5, 'pad':5})
     plt.savefig('lipMoveRatio_faceWidth.png',bbox_inches='tight')
-    os.system("mv lipMoveRatio_faceWidth.png ./opticalFlow")
+    os.system("mv lipMoveRatio_faceWidth.png ./result")
     #plt.show()
 
 def markLeftEyePoint(event,x,y,flags,param):   # 標左眼中心的位置
@@ -141,7 +112,7 @@ def drawRatioMouthToEye():
     
     # 取得各 speaker 眼睛到臉底部的高
     eyeToFaceBoundDic = {}
-    faceHeightLIST = CSVtoLIST("./manMade_face_boundingBox.csv")
+    faceHeightLIST = CSVtoLIST("./result/manMade_face_boundingBox.csv")
     for i, item in enumerate(faceHeightLIST):
         speaker = item[0][:4]
         kind = item[0][5]
@@ -184,13 +155,13 @@ def drawRatioMouthToEye():
         eyeToFaceBound = fy - (leftEyeY+rightEyeY)/2
         eyeToFaceBoundDic[speaker] = eyeToFaceBound
     
-    outputFILE = open("manMadeEyePos.csv", "w")
+    outputFILE = open("./result/manMadeEyePos.csv", "w")
     w = csv.writer(outputFILE)
     w.writerows(eyePosLIST)
     outputFILE.close()
     
     
-    lipMaxMove = CSVtoLIST("./opticalFlow/lipCorners_upperAndLower/maxLipMove.csv")
+    lipMaxMove = CSVtoLIST("./result/lipCorners_upperAndLower/maxLipMove.csv")
     speakerLIST = []
     ratio = []
     for i, item in enumerate(lipMaxMove):
@@ -210,7 +181,7 @@ def drawRatioMouthToEye():
     w = csv.writer(outputFILE)
     w.writerows(moveRatio)
     outputFILE.close()
-    os.system("mv maxLipMoveRatio_eye2face.csv ./opticalFlow")
+    os.system("mv maxLipMoveRatio_eye2face.csv ./result")
 
     x_axis = np.arange(1,len(speakerLIST)+1)
 
@@ -238,14 +209,12 @@ def drawRatioMouthToEye():
     ax1.text(0.22, 7, 'mean: {}'.format(ratioMean), style='italic',bbox={'facecolor':'red', 'alpha':0.5, 'pad':5})
     ax1.text(0.22, 5.3, 'std: {}'.format(ratioStd), style='italic',bbox={'facecolor':'red', 'alpha':0.5, 'pad':5})
     plt.savefig('lipMoveRatio_eye2face.png',bbox_inches='tight')
-    os.system("mv lipMoveRatio_eye2face.png ./opticalFlow")
+    os.system("mv lipMoveRatio_eye2face.png ./result")
     #plt.show()
 
 
 
 if __name__ == "__main__":
     
-    
-    
-    
+    # 繪製
     drawRatioLineChart()
